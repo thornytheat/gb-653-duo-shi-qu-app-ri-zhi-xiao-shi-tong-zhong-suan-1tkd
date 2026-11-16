@@ -1,2 +1,20 @@
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);min-width:0;overflow:hidden}.panel__head{height:38px;padding:0 var(--pad);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.panel__head h2{margin:0;font:700 11px var(--mono);letter-spacing:.08em}.panel__meta{color:var(--ink-2);font:10px var(--mono)}.panel__body{padding:var(--pad)}.panel__body--scroll{padding:0;max-height:610px;overflow:auto}.ledger{width:100%;border-collapse:collapse}.ledger th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-2);font:10px var(--mono);text-align:left}.ledger th,.ledger td{height:var(--row);padding:5px 10px;border-bottom:1px solid var(--line)}.ledger tr:hover{background:var(--accent-soft)}.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}.sev{border:1px solid var(--warn);padding:2px 5px;color:var(--warn)}.btn{height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:var(--radius-sm);background:transparent;color:var(--ink);cursor:pointer}.btn--primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.bars{display:grid;gap:12px}.bars i{display:block;width:var(--v);height:9px;background:var(--accent)}pre.result{min-height:72px;max-height:190px;overflow:auto;border-left:2px solid var(--accent);padding:10px;background:var(--rail);color:var(--ink);font:11px/1.5 var(--mono);white-space:pre-wrap}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
+
+/* M1 分段采集 */
+.intake{display:flex;flex-direction:column;gap:8px}
+.intake label{display:flex;flex-direction:column;gap:4px;font:10px var(--mono);color:var(--ink-2)}
+.intake label.full{grid-column:1/-1}
+.intake input,.intake textarea{background:var(--rail);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--ink);font:11px var(--mono);padding:5px 8px}
+.intake textarea{resize:vertical;white-space:pre}
+.intake__btns{display:flex;flex-wrap:wrap;gap:6px}
+.state--RECEIVING{color:var(--accent);border-color:var(--accent)}
+.state--PENDING_TAIL{color:var(--warn);border-color:var(--warn)}
+.state--COMPLETE{color:var(--ink-2);border-color:var(--line-2)}
+.ledger code{font:10px var(--mono)}
+.buckets i{display:inline-block;font-style:normal;font:10px var(--mono);border:1px solid var(--line-2);border-radius:var(--radius-sm);padding:1px 4px;margin:1px 2px 1px 0;color:var(--ink-2)}
+.evidence{margin-top:var(--pad)}
+.evidence--quarantine td{color:var(--warn)}
+.rawcell{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:10px var(--mono)}
+.empty,.empty-hint{color:var(--ink-2);font:11px var(--mono);text-align:center;padding:12px}
+.evidence--valid td:first-child{border-left:2px solid var(--accent)}

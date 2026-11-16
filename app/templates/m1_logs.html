@@ -1,4 +1,94 @@
 {% extends "base.html" %}{% block content %}
-<div class="grid module-1"><section class="panel panel--primary"><div class="panel__head"><h2>日志采信记录</h2><span class="panel__meta">M1 · {{ data.status|default('READY') }}</span></div><div class="panel__body panel__body--scroll"><table class="ledger"><thead><tr><th>字段</th><th>值</th><th>证据</th></tr></thead><tbody>{% for key, value in data.items() %}<tr><td>{{ key }}</td><td class="num">{{ value }}</td><td>R{{ loop.index }}</td></tr>{% endfor %}</tbody></table></div></section>
-<div class="stack"><section class="panel"><div class="panel__head"><h2>原因码</h2><span class="panel__meta">{{ data.reason|default('OK') }}</span></div><div class="panel__body bars"><i style="--v:29%"></i><i style="--v:62%"></i></div></section><section class="panel"><div class="panel__head"><h2>本次动作</h2><span class="panel__meta">/api/logs/import</span></div><div class="panel__body"><button class="btn btn--primary" data-endpoint="/api/logs/import">运行 日志采信</button><pre class="result">等待运行</pre></div></section></div></div>
+<div class="grid module-1">
+<section class="panel panel--primary">
+  <div class="panel__head"><h2>来源与文件代次台账</h2><span class="panel__meta">M1 · 分段采信 · 来源 {{ data.intake.totals.source_count }} / 代次 {{ data.intake.totals.generation_count }}</span></div>
+  <div class="panel__body panel__body--scroll">
+    <table class="ledger">
+      <thead><tr><th>来源</th><th>代次</th><th>批次</th><th>状态</th><th class="num">已接收字节</th><th>待补尾行</th><th class="num">物理行</th><th class="num">有效</th><th class="num">隔离</th><th>小时桶</th><th>结尾时间</th></tr></thead>
+      <tbody>
+      {% for src in data.intake.sources %}
+        {% for g in src.generations %}
+        <tr>
+          <td>{{ g.source }}</td>
+          <td class="num">g{{ g.generation }}</td>
+          <td>{{ g.batch_id }}</td>
+          <td><span class="sev state--{{ g.state }}">{{ g.state_label }}</span></td>
+          <td class="num">{{ g.received_offset }}</td>
+          <td class="tail" title="待补尾行原文">{% if g.pending_tail %}<code>{{ g.pending_tail }}</code>{% else %}—{% endif %}</td>
+          <td class="num">{{ g.line_count }}</td>
+          <td class="num">{{ g.valid_count }}</td>
+          <td class="num">{{ g.quarantine_count }}</td>
+          <td class="buckets">{% for b in g.hour_buckets %}<i>{{ b }}</i> {% else %}—{% endfor %}</td>
+          <td class="num">{{ g.ended_at or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11" class="empty">尚未登记来源，先在右侧「采集操作」开立来源</td></tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="11" class="empty">尚未登记来源，先在右侧「采集操作」开立来源</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<div class="stack">
+  <section class="panel">
+    <div class="panel__head"><h2>代次状态</h2><span class="panel__meta">接收中 {{ data.intake.totals.receiving }} · 待补齐 {{ data.intake.totals.pending_tail }} · 完成 {{ data.intake.totals.complete }}</span></div>
+    <div class="panel__body bars">
+      <i style="--v:{{ [data.intake.totals.receiving * 30 + 8, 100]|min }}%"></i>
+      <i style="--v:{{ [data.intake.totals.pending_tail * 30 + 8, 100]|min }}%"></i>
+      <i style="--v:{{ [data.intake.totals.complete * 30 + 8, 100]|min }}%"></i>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>采集操作</h2><span class="panel__meta">/api/logs/intake</span></div>
+    <div class="panel__body intake">
+      <label>来源 source<input name="source" placeholder="pay/app.log" value="pay/app.log"></label>
+      <label>代次 generation（当前/旧代）<input name="generation" type="number" min="1" value="1"></label>
+      <label>分片序号 seq / 期望偏移<input name="seq" type="number" min="0" value="0"><input name="expected_offset" type="number" min="0" placeholder="expected_offset 可空"></label>
+      <label>批次 batch_id（可选）<input name="batch_id" placeholder="默认 来源#g代次"></label>
+      <label class="full">分片文本 text（半行可不含尾换行）<textarea name="text" rows="4" placeholder='{"request_id":"r1",...}\n{"request_id":"r2"'></textarea></label>
+      <div class="intake__btns">
+        <button class="btn btn--primary" data-intake="open">开立来源</button>
+        <button class="btn" data-intake="upload">上传分片</button>
+        <button class="btn" data-intake="rotate">换代</button>
+        <button class="btn" data-intake="end">明确结尾</button>
+        <button class="btn" data-intake="reload">刷新台账</button>
+      </div>
+      <pre class="result" id="intake-result">等待操作</pre>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>本次动作（整段解析，旧入口）</h2><span class="panel__meta">/api/logs/import</span></div>
+    <div class="panel__body"><button class="btn btn--primary" data-endpoint="/api/logs/import">运行 日志采信</button><pre class="result">等待运行</pre></div>
+  </section>
+</div>
+</div>
+
+<section class="panel panel--primary evidence">
+  <div class="panel__head"><h2>采信证据：有效行与隔离行（按来源 / 代次 / 物理行号）</h2><span class="panel__meta">有效 {{ data.intake.totals.row_count }} · 隔离 {{ data.intake.totals.quarantine_count }}</span></div>
+  <div class="panel__body panel__body--scroll">
+    <table class="ledger">
+      <thead><tr><th>来源</th><th>代次</th><th>批次</th><th class="num">物理行</th><th>request_id</th><th>小时桶</th><th>原因码</th><th>原始证据</th></tr></thead>
+      <tbody id="evidence-body">
+      {% for src in data.intake.sources %}
+        {% for e in src.evidence %}
+        <tr class="evidence--{{ e.kind|lower }}">
+          <td>{{ e.source }}</td>
+          <td class="num">g{{ e.generation }}</td>
+          <td>{{ e.batch_id }}</td>
+          <td class="num">{{ e.source_line }}</td>
+          <td>{{ e.request_id or '—' }}</td>
+          <td><i>{{ e.hour_bucket }}</i></td>
+          <td>{% if e.reason %}<span class="sev">{{ e.reason }}</span>{% else %}—{% endif %}</td>
+          <td class="rawcell" title="{{ e.raw }}">{{ e.raw }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="8" class="empty">暂无证据：开立来源并上传分片后展示</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}
